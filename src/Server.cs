@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using MahjongServer.Protocol;
 
 namespace MahjongServer;
@@ -30,7 +29,7 @@ public class Server
         Console.WriteLine("服务器启动成功");
         return listener;
     }
-
+    
     private async Task Receive(Socket handler)
     {
         ClientState state = new();
@@ -52,12 +51,15 @@ public class Server
             {
                 // 获取消息id
                 MessageId id = ProtoUtil.DecodeId(state.readBuff);
-                
+
                 // 读取消息
                 LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuff);
                 Console.WriteLine(data.userId);
                 Console.WriteLine(data.password);
-                byte[] sendBytes = Encoding.UTF8.GetBytes("LoginAck");
+                LoginAck ack = new() {username = "frank"};
+
+                byte[] sendBytes = ProtoUtil.Encode(id, ack);
+                // byte[] sendBytes = Encoding.UTF8.GetBytes("LoginAck");
                 _ = handler.SendAsync(sendBytes, SocketFlags.None);
             }
         }
