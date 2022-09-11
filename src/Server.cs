@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using MahjongServer.Protocol;
 
 namespace MahjongServer;
 
@@ -9,6 +10,9 @@ internal class ClientState
     public Socket? socket;
     public byte[] readBuff = new byte[1024];
 }
+
+// 协议处理方法
+public delegate void View(string str);
 
 public class Server
 {
@@ -36,7 +40,6 @@ public class Server
         while (true)
         {
             int count = await handler.ReceiveAsync(state.readBuff, SocketFlags.None);
-            Console.WriteLine("receive");
             // 连接断开
             if (count == 0)
             {
@@ -47,10 +50,14 @@ public class Server
             }
             else
             {
+                // 获取消息id
+                MessageId id = ProtoUtil.DecodeId(state.readBuff);
+                
                 // 读取消息
-                string receivedStr = Encoding.UTF8.GetString(state.readBuff, 0, count);
-                Console.WriteLine(receivedStr);
-                byte[] sendBytes = Encoding.UTF8.GetBytes(receivedStr);
+                LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuff);
+                Console.WriteLine(data.userId);
+                Console.WriteLine(data.password);
+                byte[] sendBytes = Encoding.UTF8.GetBytes("LoginAck");
                 _ = handler.SendAsync(sendBytes, SocketFlags.None);
             }
         }
