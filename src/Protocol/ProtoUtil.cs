@@ -20,7 +20,6 @@ public static class ProtoUtil
         // 结构体转字符串
         // string json = JsonUtility.ToJson(data);
         string json = JsonConvert.SerializeObject(data);
-        Console.WriteLine(json);
         // 字符串转字节
         byte[] bodyBytes = Encoding.UTF8.GetBytes(json);
         // 获取发送消息字节长度
@@ -65,7 +64,6 @@ public static class ProtoUtil
         // 获取json字符串
 
         string json = Encoding.UTF8.GetString(jsonByte);
-        Console.WriteLine(json);
         return JsonConvert.DeserializeObject<T>(json);
     }
 }
