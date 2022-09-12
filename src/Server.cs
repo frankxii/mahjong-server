@@ -66,7 +66,7 @@ public class Server
             // 计算写入内存区域
             Memory<byte> buffer = new(state.readBuffer, state.bufferCount, ClientState.BUFFER_SIZE - state.bufferCount);
             int count = await handler.ReceiveAsync(buffer, SocketFlags.None);
-            state.bufferCount = Convert.ToInt16(count);
+            state.bufferCount += Convert.ToInt16(count);
             Console.WriteLine(count);
             // 连接断开
             if (count == 0)
@@ -92,21 +92,29 @@ public class Server
             if (state.bufferCount < length)
                 break;
             MessageId id = ProtoUtil.DecodeId(state.readBuffer);
-            state.bufferCount -= length;
             // ==========业务逻辑=========
             // 读取消息
             LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
             Console.WriteLine(data.password);
-            LoginAck ack = new() {username = "frank"};
 
+            LoginAck ack = new() {username = "frank"};
             byte[] sendBytes = ProtoUtil.Encode(id, ack);
-            // byte[] sendBytes = Encoding.UTF8.GetBytes("LoginAck");
             _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
+
             // ==========业务逻辑=========
 
             // buffCount为0表示所有数据已处理完成，退出消息处理循环，等待下一次receive
-            if (state.bufferCount == 0)
-                break;
+            if (state.bufferCount == length)
+            {
+                state.bufferCount = 0;
+            }
+            else
+            {
+                state.bufferCount -= length;
+                // 位移数组
+                Array.Copy(state.readBuffer, length, state.readBuffer, 0, state.bufferCount);
+            }
+
             await Task.Delay(10);
         }
     }
