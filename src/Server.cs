@@ -4,7 +4,7 @@ using MahjongServer.Protocol;
 
 namespace MahjongServer;
 
-internal class ClientState
+public class ClientState
 {
     public Socket socket; // socket连接
     public const short BUFFER_SIZE = 1024; //接收缓冲区大小
@@ -18,17 +18,27 @@ internal class ClientState
 }
 
 // 协议处理方法
-public delegate void View(string str);
+public delegate void View(ClientState state);
 
 public class Server
 {
     private Socket? _listener;
     public const int MAX_CLIENT = 30;
     private Dictionary<Socket, ClientState> _clients = new();
+    private Dictionary<MessageId, View> _router = new();
+
+    public Server()
+    {
+        // 绑定消息处理视图函数
+        _router[MessageId.Login] = OnLogin;
+        _router[MessageId.CreateRoom] = OnCreateRoom;
+    }
+
 
     public async Task Run(string address = "127.0.0.1", int port = 8000)
     {
         _listener = Listen(address, port);
+
         while (true)
         {
             try
@@ -67,7 +77,6 @@ public class Server
             Memory<byte> buffer = new(state.readBuffer, state.bufferCount, ClientState.BUFFER_SIZE - state.bufferCount);
             int count = await handler.ReceiveAsync(buffer, SocketFlags.None);
             state.bufferCount += Convert.ToInt16(count);
-            Console.WriteLine(count);
             // 连接断开
             if (count == 0)
             {
@@ -78,11 +87,11 @@ public class Server
             }
 
             // 处理消息
-            await HandleMessage(state);
+            HandleMessage(state);
         }
     }
 
-    private async Task HandleMessage(ClientState state)
+    private void HandleMessage(ClientState state)
     {
         while (true)
         {
@@ -91,22 +100,23 @@ public class Server
             // 当前buffer有效数据小于包体长度，属于半包，不处理
             if (state.bufferCount < length)
                 break;
-            MessageId id = ProtoUtil.DecodeId(state.readBuffer);
-            // ==========业务逻辑=========
-            // 读取消息
-            LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
-            Console.WriteLine(data.password);
 
-            LoginAck ack = new() {username = "frank"};
-            byte[] sendBytes = ProtoUtil.Encode(id, ack);
-            _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
+            // 执行业务逻辑
+            try
+            {
+                MessageId id = ProtoUtil.DecodeId(state.readBuffer);
+                _router[id].Invoke(state);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
 
-            // ==========业务逻辑=========
-
-            // buffCount为0表示所有数据已处理完成，退出消息处理循环，等待下一次receive
+            // buffCount和消息长度相等，表示只有一条数据，退出消息处理循环，等待下一次receive
             if (state.bufferCount == length)
             {
                 state.bufferCount = 0;
+                break;
             }
             else
             {
@@ -114,8 +124,20 @@ public class Server
                 // 位移数组
                 Array.Copy(state.readBuffer, length, state.readBuffer, 0, state.bufferCount);
             }
-
-            await Task.Delay(10);
         }
+    }
+
+
+    private void OnLogin(ClientState state)
+    {
+        LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
+        Console.WriteLine(data.password);
+        LoginAck ack = new() {username = "frank"};
+        byte[] sendBytes = ProtoUtil.Encode(MessageId.Login, ack);
+        _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
+    }
+
+    private void OnCreateRoom(ClientState state)
+    {
     }
 }
