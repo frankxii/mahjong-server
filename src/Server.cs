@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using MahjongServer.Protocol;
@@ -17,28 +18,23 @@ public class ClientState
     }
 }
 
-// 协议处理方法
-public delegate void View(ClientState state);
-
 public class Server
 {
     private Socket? _listener;
-    public const int MAX_CLIENT = 30;
-    private Dictionary<Socket, ClientState> _clients = new();
-    private Dictionary<MessageId, View> _router = new();
+    private ConcurrentDictionary<Socket, ClientState> _clients = new();
+    private Dictionary<MessageId, Action<ClientState>> _router = new();
 
     public Server()
     {
         // 绑定消息处理视图函数
-        _router[MessageId.Login] = OnLogin;
-        _router[MessageId.CreateRoom] = OnCreateRoom;
+        _router.Add(MessageId.Login, OnLogin);
+        _router.Add(MessageId.CreateRoom, OnCreateRoom);
     }
 
 
     public async Task Run(string address = "127.0.0.1", int port = 8000)
     {
         _listener = Listen(address, port);
-
         while (true)
         {
             try
@@ -60,7 +56,7 @@ public class Server
 
         IPEndPoint endPoint = new(IPAddress.Parse(address), port);
         listener.Bind(endPoint);
-        listener.Listen(MAX_CLIENT);
+        listener.Listen();
         Console.WriteLine("服务器启动成功");
         return listener;
     }
@@ -69,7 +65,7 @@ public class Server
     {
         ClientState state = new(handler);
         state.socket = handler;
-        _clients.Add(handler, state);
+        _clients.TryAdd(handler, state);
 
         while (true)
         {
@@ -81,7 +77,7 @@ public class Server
             if (count == 0)
             {
                 handler.Close();
-                _clients.Remove(handler);
+                _clients.TryRemove(handler, out _);
                 Console.WriteLine("Socket Close");
                 break;
             }
@@ -131,7 +127,6 @@ public class Server
     private void OnLogin(ClientState state)
     {
         LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
-        Console.WriteLine(data.password);
         LoginAck ack = new() {username = "frank"};
         byte[] sendBytes = ProtoUtil.Encode(MessageId.Login, ack);
         _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
