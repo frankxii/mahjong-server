@@ -127,7 +127,7 @@ public class Server
     private void OnLogin(ClientState state)
     {
         LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
-        LoginAck ack = new() {username = "frank"};
+        LoginAck ack = new() {errCode = 0, username = "frank", id = 10001, coin = 2000, diamond = 200};
         byte[] sendBytes = ProtoUtil.Encode(MessageId.Login, ack);
         _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
     }
