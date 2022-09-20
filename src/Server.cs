@@ -29,6 +29,7 @@ public class Server
         // 绑定消息处理视图函数
         _router.Add(MessageId.Login, OnLogin);
         _router.Add(MessageId.CreateRoom, OnCreateRoom);
+        _router.Add(MessageId.JoinRoom, OnJoinRoom);
     }
 
 
@@ -127,12 +128,22 @@ public class Server
     private void OnLogin(ClientState state)
     {
         LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
-        LoginAck ack = new() {errCode = 0, username = "frank", id = 10001, coin = 2000, diamond = 200};
+        LoginAck ack = new() {errCode = 0, username = "frank", id = 10001, gender = 1, coin = 2000, diamond = 200};
         byte[] sendBytes = ProtoUtil.Encode(MessageId.Login, ack);
         _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
     }
 
     private void OnCreateRoom(ClientState state)
+    {
+        CreateRoomReq data = ProtoUtil.DecodeBody<CreateRoomReq>(state.readBuffer);
+        short userId = data.userId;
+        short totalCycle = data.totalCycle;
+        CreateRoomAck ack = new() {errCode = 0, roomId = 10001, currentCycle = 1, totalCycle = 8, dealerWind = 2};
+        byte[] sendBytes = ProtoUtil.Encode(MessageId.CreateRoom, ack);
+        _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
+    }
+
+    private void OnJoinRoom(ClientState state)
     {
     }
 }
