@@ -7,22 +7,31 @@ namespace MahjongServer;
 
 public class ClientState
 {
-    public Socket socket; // socket连接
+    public TcpClient client; // socket连接
     public const short BUFFER_SIZE = 1024; //接收缓冲区大小
     public byte[] readBuffer = new byte[BUFFER_SIZE]; //接收缓冲区
     public short bufferCount; //缓冲区有效数据大小
 
-    public ClientState(Socket socket)
+    public ClientState(TcpClient client)
     {
-        this.socket = socket;
+        this.client = client;
     }
+}
+
+public struct RoomInfo
+{
+    public short roomId;
+    public short currentCycle;
+    public short totalCycle;
+    public List<PlayerInfo> players;
 }
 
 public class Server
 {
-    private Socket? _listener;
-    private ConcurrentDictionary<Socket, ClientState> _clients = new();
+    private TcpListener? _listener;
     private Dictionary<MessageId, Action<ClientState>> _router = new();
+    private ConcurrentQueue<short> _roomIdPool = new();
+    private ConcurrentDictionary<short, RoomInfo> _rooms = new();
 
     public Server()
     {
@@ -35,13 +44,15 @@ public class Server
 
     public async Task Run(string address = "127.0.0.1", int port = 8000)
     {
-        _listener = Listen(address, port);
+        FillInRoomIdPool();
+        _listener = new TcpListener(IPAddress.Parse(address), port);
+        _listener.Start();
         while (true)
         {
             try
             {
-                Socket handler = await _listener.AcceptAsync();
-                _ = Receive(handler);
+                TcpClient client = await _listener.AcceptTcpClientAsync();
+                _ = Receive(client);
             }
             catch (Exception e)
             {
@@ -51,34 +62,24 @@ public class Server
         }
     }
 
-    private Socket Listen(string address, int port)
-    {
-        Socket listener = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        IPEndPoint endPoint = new(IPAddress.Parse(address), port);
-        listener.Bind(endPoint);
-        listener.Listen();
-        Console.WriteLine("服务器启动成功");
-        return listener;
-    }
-
-    private async Task Receive(Socket handler)
+    private async Task Receive(TcpClient client)
     {
-        ClientState state = new(handler);
-        state.socket = handler;
-        _clients.TryAdd(handler, state);
+        ClientState state = new(client);
 
         while (true)
         {
             // 计算写入内存区域
             Memory<byte> buffer = new(state.readBuffer, state.bufferCount, ClientState.BUFFER_SIZE - state.bufferCount);
-            int count = await handler.ReceiveAsync(buffer, SocketFlags.None);
+            NetworkStream stream = client.GetStream();
+            int count = await stream.ReadAsync(buffer);
+            // int count = await handler.ReceiveAsync(buffer, SocketFlags.None);
             state.bufferCount += Convert.ToInt16(count);
             // 连接断开
             if (count == 0)
             {
-                handler.Close();
-                _clients.TryRemove(handler, out _);
+                stream.Close();
+                client.Close();
                 Console.WriteLine("Socket Close");
                 break;
             }
@@ -124,23 +125,50 @@ public class Server
         }
     }
 
+    private void FillInRoomIdPool()
+    {
+        for (short id = 0; id < 10010; id++)
+        {
+            _roomIdPool.Enqueue(id);
+        }
+    }
 
     private void OnLogin(ClientState state)
     {
         LoginReq data = ProtoUtil.DecodeBody<LoginReq>(state.readBuffer);
         LoginAck ack = new() {errCode = 0, username = "frank", id = 10001, gender = 1, coin = 2000, diamond = 200};
         byte[] sendBytes = ProtoUtil.Encode(MessageId.Login, ack);
-        _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
+        state.client.GetStream().WriteAsync(sendBytes);
     }
 
     private void OnCreateRoom(ClientState state)
     {
         CreateRoomReq data = ProtoUtil.DecodeBody<CreateRoomReq>(state.readBuffer);
+        short roomId;
+        _roomIdPool.TryDequeue(out roomId);
+
         short userId = data.userId;
-        short totalCycle = data.totalCycle;
-        CreateRoomAck ack = new() {errCode = 0, roomId = 10001, currentCycle = 1, totalCycle = 8, dealerWind = 2};
+
+        // 创建房间，加入房间字典
+        RoomInfo room = new() {roomId = roomId, currentCycle = 1, totalCycle = data.totalCycle};
+        List<PlayerInfo> players = new();
+        players.Add(new PlayerInfo() {id = 10001, username = "frank", coin = 3000, dealerWind = 1, state = state});
+        room.players = players;
+        _rooms.TryAdd(roomId, room);
+
+
+        // 响应客户端
+        CreateRoomAck ack = new()
+        {
+            errCode = 0,
+            roomId = roomId,
+            currentCycle = 1,
+            totalCycle = room.totalCycle,
+            dealerWind = 2,
+            players = room.players
+        };
         byte[] sendBytes = ProtoUtil.Encode(MessageId.CreateRoom, ack);
-        _ = state.socket.SendAsync(sendBytes, SocketFlags.None);
+        state.client.GetStream().WriteAsync(sendBytes);
     }
 
     private void OnJoinRoom(ClientState state)

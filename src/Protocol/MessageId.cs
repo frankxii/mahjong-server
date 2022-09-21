@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace MahjongServer.Protocol;
 
 // 通信协议消息ID
@@ -27,7 +29,18 @@ public struct LoginAck
 public struct CreateRoomReq
 {
     public short userId;
+    public short currentCycle;
     public short totalCycle;
+}
+
+public struct PlayerInfo
+{
+    [JsonIgnore]
+    public ClientState state;
+    public string username;
+    public short id;
+    public short dealerWind;
+    public int coin;
 }
 
 public struct CreateRoomAck
@@ -37,4 +50,5 @@ public struct CreateRoomAck
     public short currentCycle;
     public short totalCycle;
     public byte dealerWind;
+    public List<PlayerInfo> players;
 }
