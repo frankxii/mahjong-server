@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using MahjongServer.Exceptions;
 using MahjongServer.Model;
 using MahjongServer.Protocol;
-using Newtonsoft.Json;
 
 namespace MahjongServer;
 
@@ -63,7 +63,14 @@ public class Server
 
             foreach (Request request in requests)
             {
-                _router[request.messageId](request);
+                try
+                {
+                    _router[request.messageId](request);
+                }
+                catch (DeserializeFailException)
+                {
+                    request.client.Send(request.messageId, new Response<object>() {code = 1, message = "参数错误"});
+                }
             }
         }
     }
@@ -77,9 +84,17 @@ public class Server
         }
     }
 
+
     private void OnLogin(Request request)
     {
-        LoginReq? data = JsonConvert.DeserializeObject<LoginReq>(request.json);
+        LoginReq data = ProtoUtil.Deserialize<LoginReq>(request.json);
+        // 参数校验
+        // if (data.username == "" || data.password == "")
+        // {
+        //     request.client.Send(MessageId.Login, new Response<object>() {code = 1, message = "参数错误"});
+        //     return;
+        // }
+
         Response<LoginAck> response = new()
             {data = new LoginAck() {username = "frank", id = 10001, gender = 1, coin = 2000, diamond = 200}};
         request.client.Send(MessageId.Login, response);
@@ -87,7 +102,8 @@ public class Server
 
     private void OnCreateRoom(Request request)
     {
-        CreateRoomReq? data = JsonConvert.DeserializeObject<CreateRoomReq>(request.json);
+        CreateRoomReq data = ProtoUtil.Deserialize<CreateRoomReq>(request.json);
+
         short roomId;
         _roomIdPool.TryDequeue(out roomId);
 

@@ -1,4 +1,5 @@
 using System.Text;
+using MahjongServer.Exceptions;
 using Newtonsoft.Json;
 
 namespace MahjongServer.Protocol;
@@ -62,5 +63,16 @@ public static class ProtoUtil
         byte[] jsonByte = message.Skip(4).Take(length - 4).ToArray();
         // 返回json字符串
         return Encoding.UTF8.GetString(jsonByte);
+    }
+    
+    public static T Deserialize<T>(string json)
+    {
+        T? data = JsonConvert.DeserializeObject<T>(json);
+        if (data is null)
+        {
+            throw new DeserializeFailException();
+        }
+
+        return data;
     }
 }
