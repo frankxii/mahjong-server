@@ -60,7 +60,7 @@ public class Server
             // 客户端断开
             if (requests.Count == 0)
                 break;
-            
+
             foreach (Request request in requests)
             {
                 _router[request.messageId](request);
@@ -71,7 +71,7 @@ public class Server
 
     private void FillInRoomIdPool()
     {
-        for (short id = 0; id < 10010; id++)
+        for (short id = 10000; id < 10010; id++)
         {
             _roomIdPool.Enqueue(id);
         }
@@ -80,8 +80,9 @@ public class Server
     private void OnLogin(Request request)
     {
         LoginReq? data = JsonConvert.DeserializeObject<LoginReq>(request.json);
-        LoginAck ack = new() {errCode = 0, username = "frank", id = 10001, gender = 1, coin = 2000, diamond = 200};
-        request.client.Send(MessageId.Login, ack);
+        Response<LoginAck> response = new()
+            {data = new LoginAck() {username = "frank", id = 10001, gender = 1, coin = 2000, diamond = 200}};
+        request.client.Send(MessageId.Login, response);
     }
 
     private void OnCreateRoom(Request request)
@@ -110,16 +111,18 @@ public class Server
 
 
         // 响应客户端
-        CreateRoomAck ack = new()
+        Response<CreateRoomAck> response = new()
         {
-            errCode = 0,
-            roomId = roomId,
-            currentCycle = 1,
-            totalCycle = room.totalCycle,
-            dealerWind = 2,
-            players = room.players
+            data = new CreateRoomAck()
+            {
+                roomId = roomId,
+                currentCycle = 1,
+                totalCycle = room.totalCycle,
+                dealerWind = 2,
+                players = room.players
+            }
         };
-        request.client.Send(MessageId.CreateRoom, ack);
+        request.client.Send(MessageId.CreateRoom, response);
     }
 
     private void OnJoinRoom(Request request)

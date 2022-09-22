@@ -17,9 +17,15 @@ public class LoginReq
     public string password = "";
 }
 
+public class Response<T>
+{
+    public short code = 0;
+    public string message = "OK";
+    public T? data;
+}
+
 public class LoginAck
 {
-    public short errCode;
     public string username = "";
     public short id;
     public short gender;
