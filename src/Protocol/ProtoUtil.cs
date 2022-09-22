@@ -55,15 +55,12 @@ public static class ProtoUtil
     /// 解析协议消息参数
     /// </summary>
     /// <param name="message"></param>
-    /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public static T? DecodeBody<T>(byte[] message)
+    public static string DecodeBody(byte[] message)
     {
         short length = BitConverter.ToInt16(message);
         byte[] jsonByte = message.Skip(4).Take(length - 4).ToArray();
-        // 获取json字符串
-
-        string json = Encoding.UTF8.GetString(jsonByte);
-        return JsonConvert.DeserializeObject<T>(json);
+        // 返回json字符串
+        return Encoding.UTF8.GetString(jsonByte);
     }
 }

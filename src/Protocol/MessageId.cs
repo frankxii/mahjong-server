@@ -1,3 +1,4 @@
+using MahjongServer.Model;
 using Newtonsoft.Json;
 
 namespace MahjongServer.Protocol;
@@ -7,48 +8,48 @@ public enum MessageId : short
 {
     Login = 1000, // 登录
     CreateRoom = 1001, //创建房间
-    JoinRoom = 1002, // 加入房间
+    JoinRoom = 1002 // 加入房间
 }
 
-public struct LoginReq
+public class LoginReq
 {
-    public string username;
-    public string password;
+    public string username = "";
+    public string password = "";
 }
 
-public struct LoginAck
+public class LoginAck
 {
     public short errCode;
-    public string username;
+    public string username = "";
     public short id;
     public short gender;
     public int coin;
     public int diamond;
 }
 
-public struct CreateRoomReq
+public class CreateRoomReq
 {
     public short userId;
     public short currentCycle;
     public short totalCycle;
 }
 
-public struct PlayerInfo
+public class PlayerInfo
 {
     [JsonIgnore]
-    public ClientState state;
-    public string username;
+    public Client? client;
+    public string username = "";
     public short id;
     public short dealerWind;
     public int coin;
 }
 
-public struct CreateRoomAck
+public class CreateRoomAck
 {
     public short errCode;
     public short roomId;
     public short currentCycle;
     public short totalCycle;
     public byte dealerWind;
-    public List<PlayerInfo> players;
+    public List<PlayerInfo> players = new();
 }
