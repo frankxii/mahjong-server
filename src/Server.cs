@@ -7,20 +7,12 @@ using MahjongServer.Protocol;
 
 namespace MahjongServer;
 
-public struct RoomInfo
-{
-    public short roomId;
-    public short currentCycle;
-    public short totalCycle;
-    public List<PlayerInfo> players;
-}
-
 public class Server
 {
     private TcpListener? _listener;
-    private Dictionary<MessageId, Action<Request>> _router = new();
-    private ConcurrentQueue<short> _roomIdPool = new();
-    private ConcurrentDictionary<short, RoomInfo> _rooms = new();
+    private Dictionary<MessageId, Action<Request>> _router = new(); // 回调路由表
+    private ConcurrentQueue<short> _roomIdPool = new(); // 房间ID池
+    private ConcurrentDictionary<short, RoomInfo> _rooms = new(); // 房间字典
 
     public Server()
     {
@@ -59,7 +51,10 @@ public class Server
             List<Request> requests = await client.ReceiveRequest();
             // 客户端断开
             if (requests.Count == 0)
+            {
+                Console.WriteLine("客户端退出");
                 break;
+            }
 
             foreach (Request request in requests)
             {
@@ -87,7 +82,7 @@ public class Server
 
     private void OnLogin(Request request)
     {
-        LoginReq data = ProtoUtil.Deserialize<LoginReq>(request.json);
+        // LoginReq data = ProtoUtil.Deserialize<LoginReq>(request.json);
         // 参数校验
         // if (data.username == "" || data.password == "")
         // {
@@ -95,8 +90,17 @@ public class Server
         //     return;
         // }
 
-        Response<LoginAck> response = new()
-            {data = new LoginAck() {username = "frank", id = 10001, gender = 1, coin = 2000, diamond = 200}};
+        Response<UserInfo> response = new()
+        {
+            data = new UserInfo()
+            {
+                username = "frank",
+                id = 10001,
+                gender = 1,
+                coin = 2000,
+                diamond = 200
+            }
+        };
         request.client.Send(MessageId.Login, response);
     }
 
@@ -107,10 +111,9 @@ public class Server
         short roomId;
         _roomIdPool.TryDequeue(out roomId);
 
-        short userId = data.userId;
+        // short userId = data.userId;
 
-        // 创建房间，加入房间字典
-        RoomInfo room = new() {roomId = roomId, currentCycle = 1, totalCycle = data.totalCycle};
+
         List<PlayerInfo> players = new();
         players.Add(
             new PlayerInfo()
@@ -122,22 +125,12 @@ public class Server
                 client = request.client
             }
         );
-        room.players = players;
-        _rooms.TryAdd(roomId, room);
-
+        // 创建房间，加入房间字典
+        RoomInfo roomInfo = new() {roomId = roomId, totalCycle = data.totalCycle, players = players};
+        _rooms.TryAdd(roomId, roomInfo);
 
         // 响应客户端
-        Response<CreateRoomAck> response = new()
-        {
-            data = new CreateRoomAck()
-            {
-                roomId = roomId,
-                currentCycle = 1,
-                totalCycle = room.totalCycle,
-                dealerWind = 2,
-                players = room.players
-            }
-        };
+        Response<RoomInfo> response = new() {data = roomInfo};
         request.client.Send(MessageId.CreateRoom, response);
     }
 
