@@ -2,9 +2,9 @@ namespace MahjongServer.Model;
 
 public class UserInfo
 {
+    public int userId;
     public string username = "";
-    public short id;
-    public short gender;
+    public byte gender;
     public int coin;
     public int diamond;
 }

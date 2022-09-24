@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using MahjongServer.DB;
 using MahjongServer.Exceptions;
 using MahjongServer.Model;
 using MahjongServer.Protocol;
@@ -66,6 +67,10 @@ public class Server
                 {
                     request.client.Send(request.messageId, new Response<object>() {code = 1, message = "参数错误"});
                 }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             }
         }
     }
@@ -82,23 +87,45 @@ public class Server
 
     private void OnLogin(Request request)
     {
-        // LoginReq data = ProtoUtil.Deserialize<LoginReq>(request.json);
+        LoginReq data = ProtoUtil.Deserialize<LoginReq>(request.json);
         // 参数校验
-        // if (data.username == "" || data.password == "")
-        // {
-        //     request.client.Send(MessageId.Login, new Response<object>() {code = 1, message = "参数错误"});
-        //     return;
-        // }
+        if (data.username == "" || data.password == "")
+        {
+            request.client.Send(MessageId.Login, new Response<object>() {code = 1, message = "参数错误"});
+            return;
+        }
 
+        using MahjongDbContext db = new();
+
+        User user;
+        // 用户名不存在时会抛异常
+        try
+        {
+            user = db.User.Single(row => row.Username == data.username);
+        }
+        catch (Exception)
+        {
+            request.client.Send(MessageId.Login, new Response<object>() {code = 1, message = "用户不存在"});
+            return;
+        }
+
+        // 校验密码
+        if (!user.Password.Equals(data.password))
+        {
+            request.client.Send(MessageId.Login, new Response<object>() {code = 2, message = "密码错误"});
+            return;
+        }
+
+        // 构造响应结果
         Response<UserInfo> response = new()
         {
             data = new UserInfo()
             {
-                username = "frank",
-                id = 10001,
-                gender = 1,
-                coin = 2000,
-                diamond = 200
+                userId = user.UserId,
+                username = user.Username,
+                gender = user.Gender,
+                coin = user.Coin,
+                diamond = user.Diamond
             }
         };
         request.client.Send(MessageId.Login, response);
@@ -118,7 +145,7 @@ public class Server
         players.Add(
             new PlayerInfo()
             {
-                id = 10001,
+                userId = 10001,
                 username = "frank",
                 coin = 3000,
                 dealerWind = 1,
