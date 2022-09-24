@@ -18,6 +18,11 @@ public class User
     public string Username { get; set; } = "";
 
     [Required]
+    [Comment("密码")]
+    [Column("password", TypeName = "varchar(64)")]
+    public string Password { get; set; } = "";
+
+    [Required]
     [Comment("金币数量")]
     [Column("coin")]
     public int Coin { get; set; }
