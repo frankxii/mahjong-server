@@ -12,8 +12,8 @@ public class Server
 {
     private TcpListener? _listener;
     private Dictionary<MessageId, Action<Request>> _router = new(); // 回调路由表
-    private ConcurrentQueue<short> _roomIdPool = new(); // 房间ID池
-    private ConcurrentDictionary<short, RoomInfo> _rooms = new(); // 房间字典
+    private ConcurrentQueue<int> _roomIdPool = new(); // 房间ID池
+    private ConcurrentDictionary<int, RoomInfo> _rooms = new(); // 房间字典
 
     public Server()
     {
@@ -135,19 +135,20 @@ public class Server
     {
         CreateRoomReq data = ProtoUtil.Deserialize<CreateRoomReq>(request.json);
 
-        short roomId;
+        int roomId;
         _roomIdPool.TryDequeue(out roomId);
 
         // short userId = data.userId;
-
+        using MahjongDbContext db = new();
+        User user = db.User.Single(row => row.UserId == data.userId);
 
         List<PlayerInfo> players = new();
         players.Add(
             new PlayerInfo()
             {
-                userId = 10001,
-                username = "frank",
-                coin = 3000,
+                userId = user.UserId,
+                username = user.Username,
+                coin = user.Coin,
                 dealerWind = 1,
                 client = request.client
             }
@@ -163,5 +164,46 @@ public class Server
 
     private void OnJoinRoom(Request request)
     {
+        JoinRoomReq data = ProtoUtil.Deserialize<JoinRoomReq>(request.json);
+        if (!_rooms.ContainsKey(data.roomId))
+            request.client.Send(MessageId.JoinRoom, new Response<object>() {code = 10, message = "房间不存在"});
+        using MahjongDbContext db = new();
+        User user = db.User.Single(row => row.UserId == data.userId);
+        if (_rooms[data.roomId].players.Count >= 4)
+            request.client.Send(MessageId.JoinRoom, new Response<object>() {code = 11, message = "房间人数已满"});
+        List<byte> winds = new() {1, 2, 3, 4};
+
+        foreach (PlayerInfo playerInfo in _rooms[data.roomId].players)
+        {
+            if (winds.Contains(playerInfo.dealerWind))
+            {
+                winds.Remove(playerInfo.dealerWind);
+            }
+        }
+
+        PlayerInfo player = new()
+        {
+            userId = user.UserId,
+            username = user.Username,
+            coin = user.Coin,
+            gender = user.Gender,
+            dealerWind = winds[0],
+            client = request.client
+        };
+        _rooms[data.roomId].players.Add(player);
+        // 响应玩家加入房间信息
+        request.client.Send(MessageId.JoinRoom, new Response<RoomInfo>() {data = _rooms[data.roomId]});
+
+        // 同步其他玩家，更新房间信息
+        foreach (PlayerInfo playerInfo in _rooms[data.roomId].players)
+        {
+            if (playerInfo.userId != data.userId)
+            {
+                playerInfo.client?.Send(
+                    MessageId.UpdatePlayer,
+                    new Response<List<PlayerInfo>>() {data = _rooms[data.roomId].players}
+                );
+            }
+        }
     }
 }

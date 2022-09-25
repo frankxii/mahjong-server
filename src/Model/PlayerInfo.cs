@@ -10,5 +10,5 @@ public class PlayerInfo : UserInfo
     [JsonIgnore]
     public Client? client;
 
-    public short dealerWind;
+    public byte dealerWind;
 }
