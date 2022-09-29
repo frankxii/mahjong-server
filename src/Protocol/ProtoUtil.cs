@@ -12,7 +12,7 @@ public static class ProtoUtil
     /// <param name="id">消息枚举ID</param>
     /// <param name="response">响应结果</param>
     /// <returns>封装字节流</returns>
-    public static byte[] Encode<T>(MessageId id, Response<T> response)
+    public static byte[] Encode(MessageId id, object response)
     {
         // 默认长度为4，长度两个字节，协议ID两个字节
         short length = 4;

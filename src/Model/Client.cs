@@ -61,7 +61,7 @@ public class Client
         return requests;
     }
 
-    public void Send<T>(MessageId id, Response<T> response)
+    public void Send(MessageId id, object response)
     {
         byte[] sendBytes = ProtoUtil.Encode(id, response);
         _ = stream.WriteAsync(sendBytes);

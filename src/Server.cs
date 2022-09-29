@@ -171,6 +171,7 @@ public class Server
         User user = db.User.Single(row => row.UserId == data.userId);
         if (_rooms[data.roomId].players.Count >= 4)
             request.client.Send(MessageId.JoinRoom, new Response<object>() {code = 11, message = "房间人数已满"});
+        // 安排玩家门风
         List<byte> winds = new() {1, 2, 3, 4};
 
         foreach (PlayerInfo playerInfo in _rooms[data.roomId].players)
@@ -199,10 +200,7 @@ public class Server
         {
             if (playerInfo.userId != data.userId)
             {
-                playerInfo.client?.Send(
-                    MessageId.UpdatePlayer,
-                    new Response<List<PlayerInfo>>() {data = _rooms[data.roomId].players}
-                );
+                playerInfo.client?.Send(MessageId.UpdatePlayer, _rooms[data.roomId].players);
             }
         }
     }
