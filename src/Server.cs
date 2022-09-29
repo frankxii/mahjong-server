@@ -21,6 +21,7 @@ public class Server
         _router.Add(MessageId.Login, OnLogin);
         _router.Add(MessageId.CreateRoom, OnCreateRoom);
         _router.Add(MessageId.JoinRoom, OnJoinRoom);
+        _router.Add(MessageId.LeaveRoom, OnLeaveRoom);
     }
 
 
@@ -148,6 +149,7 @@ public class Server
             {
                 userId = user.UserId,
                 username = user.Username,
+                gender = user.Gender,
                 coin = user.Coin,
                 dealerWind = 1,
                 client = request.client
@@ -167,6 +169,7 @@ public class Server
         JoinRoomReq data = ProtoUtil.Deserialize<JoinRoomReq>(request.json);
         if (!_rooms.ContainsKey(data.roomId))
             request.client.Send(MessageId.JoinRoom, new Response<object>() {code = 10, message = "房间不存在"});
+
         using MahjongDbContext db = new();
         User user = db.User.Single(row => row.UserId == data.userId);
         if (_rooms[data.roomId].players.Count >= 4)
@@ -201,6 +204,43 @@ public class Server
             if (playerInfo.userId != data.userId)
             {
                 playerInfo.client?.Send(MessageId.UpdatePlayer, _rooms[data.roomId].players);
+            }
+        }
+    }
+
+    private void OnLeaveRoom(Request request)
+    {
+        LeaveRoomReq req = ProtoUtil.Deserialize<LeaveRoomReq>(request.json);
+
+        RoomInfo? roomInfo = _rooms[req.roomId];
+
+        // 遍历玩家列表，移除id相同的玩家
+        foreach (PlayerInfo player in roomInfo.players)
+        {
+            if (player.userId == req.userId)
+            {
+                roomInfo.players.Remove(player);
+                break;
+            }
+        }
+
+        // 发送离开成功响应
+        request.client.Send(MessageId.LeaveRoom, new Response<object>());
+
+        // 所有人已离开房间
+        if (roomInfo.players.Count == 0)
+        {
+            // 把房间id放回id池
+            _roomIdPool.Enqueue(roomInfo.roomId);
+            // 移除房间信息
+            _rooms.TryRemove(roomInfo.roomId, out roomInfo);
+        }
+        else
+        {
+            // 通知其他玩家更新房间人员信息
+            foreach (PlayerInfo player in roomInfo.players)
+            {
+                player.client?.Send(MessageId.UpdatePlayer, roomInfo.players);
             }
         }
     }
