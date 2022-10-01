@@ -7,7 +7,8 @@ public enum MessageId : short
     CreateRoom = 1001, //创建房间
     JoinRoom = 1002, // 玩家加入房间
     UpdatePlayer = 1003, // 更新玩家信息
-    LeaveRoom = 1004 // 玩家离开房间
+    LeaveRoom = 1004, // 玩家离开房间
+    Ready = 1005 // 玩家准备
 }
 
 public class Response<T>
@@ -38,6 +39,12 @@ public class JoinRoomReq
 }
 
 public class LeaveRoomReq
+{
+    public int userId;
+    public int roomId;
+}
+
+public class ReadyReq
 {
     public int userId;
     public int roomId;

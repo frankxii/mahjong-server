@@ -10,5 +10,6 @@ public class PlayerInfo : UserInfo
     [JsonIgnore]
     public Client? client;
 
+    public bool isReady;
     public byte dealerWind;
 }

@@ -11,17 +11,21 @@ namespace MahjongServer;
 public class Server
 {
     private TcpListener? _listener;
-    private Dictionary<MessageId, Action<Request>> _router = new(); // 回调路由表
+    private Dictionary<MessageId, Action<Request>> _router; // 回调路由表
     private ConcurrentQueue<int> _roomIdPool = new(); // 房间ID池
     private ConcurrentDictionary<int, RoomInfo> _rooms = new(); // 房间字典
 
     public Server()
     {
         // 绑定消息处理视图函数
-        _router.Add(MessageId.Login, OnLogin);
-        _router.Add(MessageId.CreateRoom, OnCreateRoom);
-        _router.Add(MessageId.JoinRoom, OnJoinRoom);
-        _router.Add(MessageId.LeaveRoom, OnLeaveRoom);
+        _router = new Dictionary<MessageId, Action<Request>>()
+        {
+            [MessageId.Login] = OnLogin,
+            [MessageId.CreateRoom] = OnCreateRoom,
+            [MessageId.JoinRoom] = OnJoinRoom,
+            [MessageId.LeaveRoom] = OnLeaveRoom,
+            [MessageId.Ready] = OnReady
+        };
     }
 
 
@@ -151,6 +155,7 @@ public class Server
                 username = user.Username,
                 gender = user.Gender,
                 coin = user.Coin,
+                isReady = false,
                 dealerWind = 1,
                 client = request.client
             }
@@ -191,6 +196,7 @@ public class Server
             username = user.Username,
             coin = user.Coin,
             gender = user.Gender,
+            isReady = false,
             dealerWind = winds[0],
             client = request.client
         };
@@ -241,6 +247,30 @@ public class Server
             foreach (PlayerInfo player in roomInfo.players)
             {
                 player.client?.Send(MessageId.UpdatePlayer, roomInfo.players);
+            }
+        }
+    }
+
+    private void OnReady(Request request)
+    {
+        ReadyReq req = ProtoUtil.Deserialize<ReadyReq>(request.json);
+        RoomInfo room = _rooms[req.roomId];
+        // 找到准备的玩家，更新玩家信息
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player.userId == req.userId)
+                player.isReady = true;
+        }
+
+        // 响应准备玩家，已准备ok
+        request.client.Send(MessageId.Ready, new Response<object>());
+
+        // 同步其他玩家当前房间信息
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player.userId != req.userId)
+            {
+                player.client?.Send(MessageId.UpdatePlayer, room.players);
             }
         }
     }
