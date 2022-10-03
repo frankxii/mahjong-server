@@ -273,5 +273,22 @@ public class Server
                 player.client?.Send(MessageId.UpdatePlayer, room.players);
             }
         }
+
+
+        if (room.players.Count == 4)
+        {
+            byte readyPlayer = 0;
+            foreach (PlayerInfo player in room.players)
+            {
+                if (!player.isReady)
+                    break;
+                readyPlayer += 1;
+            }
+
+            if (readyPlayer == 4)
+            {
+                // 所有玩家已准备好，准备发牌
+            }
+        }
     }
 }
