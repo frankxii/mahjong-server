@@ -1,10 +1,14 @@
 namespace MahjongServer;
 
-public class GameLogic
+public class CardDeck
 {
-    public byte[] InitCardsDeck()
+    private byte[] _cards;
+    private int _head;
+    private int _tail;
+
+    public CardDeck()
     {
-        byte[] cards =
+        _cards = new byte[]
         {
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, // 万
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
@@ -19,25 +23,51 @@ public class GameLogic
             0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
             0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29
         };
-        return cards;
+        _tail = _cards.Length - 1;
     }
 
-    public void ShuffleCards(byte[] cards)
+    public void PrintAll()
+    {
+        foreach (byte card in _cards)
+        {
+            Console.Write($"{card:X2} ");
+        }
+    }
+
+    public void Shuffle()
     {
         Random random = new();
         int newIndex;
         byte temp;
-        for (int index = cards.Length - 1; index > 0; index--)
+        for (int index = _cards.Length - 1; index > 0; index--)
         {
             newIndex = random.Next(0, index + 1);
-            temp = cards[newIndex];
-            cards[newIndex] = cards[index];
-            cards[index] = temp;
+            temp = _cards[newIndex];
+            _cards[newIndex] = _cards[index];
+            _cards[index] = temp;
         }
     }
-    
-    public void DealCards(int playCount=4,int cardCount=13)
+
+    // 发牌
+    public List<byte> Deal(int cardCount = 13)
     {
-        
+        List<byte> cards = _cards.Skip(_head).Take(cardCount).ToList();
+        _head += cardCount;
+        return cards;
+    }
+
+    // 摸牌
+    public byte Draw()
+    {
+        byte card = _cards[_head];
+        _head++;
+        return card;
+    }
+
+    public byte DrawFromTail()
+    {
+        byte card = _cards[_tail];
+        _tail--;
+        return card;
     }
 }

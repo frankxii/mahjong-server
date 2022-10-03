@@ -12,4 +12,7 @@ public class PlayerInfo : UserInfo
 
     public bool isReady;
     public byte dealerWind;
+
+    [JsonIgnore]
+    public List<byte>? handCard;
 }
