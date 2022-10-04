@@ -288,6 +288,17 @@ public class Server
             if (readyPlayer == 4)
             {
                 // 所有玩家已准备好，准备发牌
+                CardDeck deck = new();
+                deck.Shuffle();
+                // 发牌
+                foreach (PlayerInfo player in room.players)
+                {
+                    // 取消准备状态
+                    player.isReady = false;
+                    player.handCard = deck.Deal();
+                    player.client?.Send(MessageId.DealCard, player.handCard);
+                }
+                // 庄家摸牌
             }
         }
     }

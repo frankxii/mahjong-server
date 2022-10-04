@@ -8,7 +8,9 @@ public enum MessageId : short
     JoinRoom = 1002, // 玩家加入房间
     UpdatePlayer = 1003, // 更新玩家信息
     LeaveRoom = 1004, // 玩家离开房间
-    Ready = 1005 // 玩家准备
+    Ready = 1005, // 玩家准备
+    DealCard = 1006, // 发牌
+    SortCard = 1007 // 理牌
 }
 
 public class Response<T>
