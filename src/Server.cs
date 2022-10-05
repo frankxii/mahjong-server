@@ -297,6 +297,7 @@ public class Server
                     player.isReady = false;
                     player.handCard = deck.Deal();
                     player.client?.Send(MessageId.DealCard, player.handCard);
+                    player.handCard.Sort();
                 }
                 // 庄家摸牌
             }

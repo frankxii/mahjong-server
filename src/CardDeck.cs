@@ -70,4 +70,26 @@ public class CardDeck
         _tail--;
         return card;
     }
+
+    /// <summary>
+    /// 碰检测
+    /// </summary>
+    /// <param name="handCards">手牌</param>
+    /// <param name="card">其他玩家打出的牌</param>
+    /// <returns>是否可以碰</returns>
+    public static bool CanPeng(List<byte> handCards, byte card)
+    {
+        return handCards.Count(item => item == card) == 2;
+    }
+
+    /// <summary>
+    /// 杠检测
+    /// </summary>
+    /// <param name="handCards">手牌</param>
+    /// <param name="card">摸到的牌或其他玩家打出的牌</param>
+    /// <returns>是否可以杠</returns>
+    public static bool CanGang(List<byte> handCards, byte card)
+    {
+        return handCards.Count(item => item == card) == 3;
+    }
 }
