@@ -15,5 +15,5 @@ public class PlayerInfo : UserInfo
     public byte dealerWind; // 门风
 
     [JsonIgnore]
-    public List<byte>? handCard; // 手牌
+    public List<byte> handCard = new(); // 手牌
 }

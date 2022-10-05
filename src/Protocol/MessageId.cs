@@ -10,7 +10,8 @@ public enum MessageId : short
     LeaveRoom = 1004, // 玩家离开房间
     Ready = 1005, // 玩家准备
     DealCard = 1006, // 发牌
-    SortCard = 1007 // 理牌
+    SortCardFinished = 1007, // 理牌
+    DrawCardEvent = 1008 // 摸牌
 }
 
 public class Response<T>
@@ -50,4 +51,16 @@ public class ReadyReq
 {
     public int userId;
     public int roomId;
+}
+
+public class SortCardReq
+{
+    public int userId;
+    public int roomId;
+}
+
+public class DrawCardEvent
+{
+    public byte dealerWind;
+    public byte card = 0;
 }

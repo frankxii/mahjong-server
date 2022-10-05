@@ -24,7 +24,8 @@ public class Server
             [MessageId.CreateRoom] = OnCreateRoom,
             [MessageId.JoinRoom] = OnJoinRoom,
             [MessageId.LeaveRoom] = OnLeaveRoom,
-            [MessageId.Ready] = OnReady
+            [MessageId.Ready] = OnReady,
+            [MessageId.SortCardFinished] = OnSortCardFinished
         };
     }
 
@@ -275,7 +276,7 @@ public class Server
         }
 
 
-        if (room.players.Count == 4)
+        if (room.players.Count == 1)
         {
             byte readyPlayer = 0;
             foreach (PlayerInfo player in room.players)
@@ -285,21 +286,64 @@ public class Server
                 readyPlayer += 1;
             }
 
-            if (readyPlayer == 4)
+            if (readyPlayer == 1)
             {
                 // 所有玩家已准备好，准备发牌
-                CardDeck deck = new();
-                deck.Shuffle();
+                room.deck.Shuffle();
                 // 发牌
                 foreach (PlayerInfo player in room.players)
                 {
                     // 取消准备状态
                     player.isReady = false;
-                    player.handCard = deck.Deal();
+                    player.handCard = room.deck.Deal();
                     player.client?.Send(MessageId.DealCard, player.handCard);
                     player.handCard.Sort();
                 }
-                // 庄家摸牌
+            }
+        }
+    }
+
+    private void OnSortCardFinished(Request request)
+    {
+        SortCardReq req = ProtoUtil.Deserialize<SortCardReq>(request.json);
+        RoomInfo room = _rooms[req.roomId];
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player.userId == req.userId)
+            {
+                player.isSorted = true;
+                break;
+            }
+        }
+
+        int sortedCount = 0;
+        foreach (PlayerInfo player in room.players)
+        {
+            if (!player.isSorted)
+                return;
+            sortedCount += 1;
+        }
+
+        // 所有玩家均已理完牌，准备摸牌
+        if (sortedCount == 4)
+        {
+            // 决定摸牌玩家
+            PlayerInfo drawPlayer = room.players[0];
+            
+            // 摸牌并同步给摸牌玩家
+            byte card = room.deck.Draw();
+            drawPlayer.handCard.Add(card);
+            DrawCardEvent data = new() {dealerWind = drawPlayer.dealerWind, card = card};
+            room.players[0].client?.Send(MessageId.DrawCardEvent, data);
+
+            // 隐藏摸牌数值，同步其他玩家
+            data.card = 0;
+            foreach (PlayerInfo player in room.players)
+            {
+                if (player != drawPlayer)
+                {
+                    player.client?.Send(MessageId.DrawCardEvent, data);
+                }
             }
         }
     }

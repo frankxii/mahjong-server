@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace MahjongServer.Model;
 
 public class RoomInfo
@@ -6,4 +8,7 @@ public class RoomInfo
     public short currentCycle = 1;
     public short totalCycle = 4;
     public List<PlayerInfo> players = new();
+
+    [JsonIgnore]
+    public CardDeck deck = new();
 }
