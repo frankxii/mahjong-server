@@ -11,7 +11,9 @@ public enum MessageId : short
     Ready = 1005, // 玩家准备
     DealCard = 1006, // 发牌
     SortCardFinished = 1007, // 理牌
-    DrawCardEvent = 1008 // 摸牌
+    DrawCardEvent = 1008, // 摸牌
+    PlayCard = 1009, // 出牌
+    PlayCardEvent=1010, // 其他玩家出牌事件
 }
 
 public class Response<T>
@@ -63,4 +65,17 @@ public class DrawCardEvent
 {
     public byte dealerWind;
     public byte card = 0;
+}
+
+public class PlayCardReq
+{
+    public int roomId;
+    public int userId;
+    public byte card;
+}
+
+public class PlayCardEvent
+{
+    public byte dealerWind;
+    public byte card;
 }

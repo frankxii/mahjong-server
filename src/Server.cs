@@ -25,7 +25,8 @@ public class Server
             [MessageId.JoinRoom] = OnJoinRoom,
             [MessageId.LeaveRoom] = OnLeaveRoom,
             [MessageId.Ready] = OnReady,
-            [MessageId.SortCardFinished] = OnSortCardFinished
+            [MessageId.SortCardFinished] = OnSortCardFinished,
+            [MessageId.PlayCard] = OnPlayCard
         };
     }
 
@@ -276,7 +277,7 @@ public class Server
         }
 
         // 玩家不足四人，不准备发牌
-        if (room.players.Count != 4)
+        if (room.players.Count != 1)
             return;
 
         byte readyPlayer = 0;
@@ -288,7 +289,7 @@ public class Server
         }
 
         // 已准备玩家不足四人，不发牌
-        if (readyPlayer != 4)
+        if (readyPlayer != 1)
             return;
 
         // 所有玩家已准备好，准备发牌
@@ -323,7 +324,7 @@ public class Server
             if (!player.isSorted)
                 return;
         }
-        
+
         // 决定摸牌玩家
         PlayerInfo drawPlayer = room.players[0];
 
@@ -342,5 +343,31 @@ public class Server
                 player.client?.Send(MessageId.DrawCardEvent, data);
             }
         }
+    }
+
+    private void OnPlayCard(Request request)
+    {
+        PlayCardReq req = ProtoUtil.Deserialize<PlayCardReq>(request.json);
+        RoomInfo room = _rooms[req.roomId];
+        byte dealerWind = 1;
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player.userId == req.userId)
+            {
+                dealerWind = player.dealerWind;
+                player.handCard.Remove(req.card);
+            }
+        }
+
+        // 通知其他玩家有人出牌
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player.userId != req.userId)
+            {
+                PlayCardEvent data = new() {card = req.card, dealerWind = dealerWind};
+                player.client?.Send(MessageId.PlayCardEvent, data);
+            }
+        }
+        // 通知其他玩家可以吃碰胡
     }
 }
