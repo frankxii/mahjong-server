@@ -305,6 +305,41 @@ public class Server
         }
     }
 
+    /// <summary>
+    /// 玩家摸牌
+    /// </summary>
+    /// <param name="room">房间信息</param>
+    /// <param name="dealerWind">摸牌玩家门风</param>
+    private void PlayerDrawCard(RoomInfo room, byte dealerWind)
+    {
+        // 决定摸牌玩家
+        PlayerInfo drawPlayer = room.players[0];
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player.dealerWind == dealerWind)
+            {
+                drawPlayer = player;
+            }
+        }
+
+        // 摸牌并同步给摸牌玩家
+        byte card = room.deck.Draw();
+        drawPlayer.handCard.Add(card);
+        drawPlayer.handCard.Sort();
+        DrawCardEvent data = new() {dealerWind = drawPlayer.dealerWind, card = card};
+        room.players[0].client?.Send(MessageId.DrawCardEvent, data);
+
+        // 隐藏摸牌数值，同步其他玩家
+        data.card = 0;
+        foreach (PlayerInfo player in room.players)
+        {
+            if (player != drawPlayer)
+            {
+                player.client?.Send(MessageId.DrawCardEvent, data);
+            }
+        }
+    }
+
     private void OnSortCardFinished(Request request)
     {
         SortCardReq req = ProtoUtil.Deserialize<SortCardReq>(request.json);
@@ -325,24 +360,8 @@ public class Server
                 return;
         }
 
-        // 决定摸牌玩家
-        PlayerInfo drawPlayer = room.players[0];
-
-        // 摸牌并同步给摸牌玩家
-        byte card = room.deck.Draw();
-        drawPlayer.handCard.Add(card);
-        DrawCardEvent data = new() {dealerWind = drawPlayer.dealerWind, card = card};
-        room.players[0].client?.Send(MessageId.DrawCardEvent, data);
-
-        // 隐藏摸牌数值，同步其他玩家
-        data.card = 0;
-        foreach (PlayerInfo player in room.players)
-        {
-            if (player != drawPlayer)
-            {
-                player.client?.Send(MessageId.DrawCardEvent, data);
-            }
-        }
+        // 东家摸牌
+        PlayerDrawCard(room, 1);
     }
 
     private void OnPlayCard(Request request)
@@ -384,7 +403,9 @@ public class Server
         if (canNextPlayerDrawCard)
         {
             // 确定下家
+            int playerDealerWind = dealerWind + 1 <= 4 ? dealerWind + 1 : 1;
             // 下家摸牌
+            PlayerDrawCard(room, (byte) playerDealerWind);
         }
     }
 }
