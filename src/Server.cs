@@ -277,7 +277,7 @@ public class Server
         }
 
         // 玩家不足四人，不准备发牌
-        if (room.players.Count != 1)
+        if (room.players.Count != 4)
             return;
 
         byte readyPlayer = 0;
@@ -289,7 +289,7 @@ public class Server
         }
 
         // 已准备玩家不足四人，不发牌
-        if (readyPlayer != 1)
+        if (readyPlayer != 4)
             return;
 
         // 所有玩家已准备好，准备发牌
@@ -359,15 +359,32 @@ public class Server
             }
         }
 
+        bool canNextPlayerDrawCard = true; // 下家能否摸牌
         // 通知其他玩家有人出牌
         foreach (PlayerInfo player in room.players)
         {
             if (player.userId != req.userId)
             {
                 PlayCardEvent data = new() {card = req.card, dealerWind = dealerWind};
+                // 检测玩家能否碰、杠、胡
+                bool canPeng = CardDeck.CanPeng(player.handCard, req.card);
+                bool canGang = CardDeck.CanGang(player.handCard, req.card);
+                bool canHu = CardDeck.CanHu(player.handCard, req.card);
+                if (canPeng || canGang || canHu)
+                    canNextPlayerDrawCard = false;
+
+                data.canPeng = canPeng;
+                data.canGang = canGang;
+                data.canHu = canHu;
                 player.client?.Send(MessageId.PlayCardEvent, data);
             }
         }
-        // 通知其他玩家可以吃碰胡
+
+        // 如果没有人可以吃碰胡，通知下家摸牌
+        if (canNextPlayerDrawCard)
+        {
+            // 确定下家
+            // 下家摸牌
+        }
     }
 }

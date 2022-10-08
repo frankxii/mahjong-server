@@ -78,4 +78,7 @@ public class PlayCardEvent
 {
     public byte dealerWind;
     public byte card;
+    public bool canPeng;
+    public bool canGang;
+    public bool canHu;
 }

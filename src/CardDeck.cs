@@ -92,4 +92,15 @@ public class CardDeck
     {
         return handCards.Count(item => item == card) == 3;
     }
+
+    /// <summary>
+    /// 胡检测
+    /// </summary>
+    /// <param name="handCards">玩家手牌</param>
+    /// <param name="card">摸到的牌或其他玩家打出的牌</param>
+    /// <returns>是否可以胡</returns>
+    public static bool CanHu(List<byte> handCards, byte card)
+    {
+        return false;
+    }
 }
