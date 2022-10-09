@@ -103,6 +103,6 @@ public class OperationReq
 public class OperationEvnet
 {
     public byte dealerWind;
-    public int operationCode;
+    public OperationCode operationCode;
     public byte operationCard;
 }

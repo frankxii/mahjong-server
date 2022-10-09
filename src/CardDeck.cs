@@ -6,6 +6,9 @@ public class CardDeck
     private int _head;
     private int _tail;
 
+    public int RemainCard => _tail - _head;
+
+
     public CardDeck()
     {
         _cards = new byte[]

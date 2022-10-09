@@ -388,7 +388,7 @@ public class Server
                 PlayCardEvent data = new() {card = req.card, dealerWind = dealerWind};
                 // 检测玩家能否碰、杠、胡
                 bool canPeng = CardDeck.CanPeng(player.handCard, req.card);
-                bool canGang = CardDeck.CanGang(player.handCard, req.card);
+                bool canGang = CardDeck.CanGang(player.handCard, req.card) && room.deck.RemainCard > 0;
                 bool canHu = CardDeck.CanHu(player.handCard, req.card);
                 if (canPeng || canGang || canHu)
                     playerCount += 1;
@@ -467,13 +467,61 @@ public class Server
             if (topOperation.operationCode == OperationCode.Hu)
             {
             }
-            else
+            else if (topOperation.operationCode == OperationCode.Peng)
             {
-                if (topOperation.operationCode == OperationCode.Peng)
+                foreach (PlayerInfo player in room.players)
                 {
+                    player.client?.Send(MessageId.OperationEvent, new OperationEvnet()
+                    {
+                        dealerWind = topOperation.dealerWind,
+                        operationCode = OperationCode.Peng,
+                        operationCard = room.lastPlayCard
+                    });
                 }
-                else if (topOperation.operationCode == OperationCode.Gang)
+
+                foreach (PlayerInfo player in room.players)
                 {
+                    if (player.dealerWind == topOperation.dealerWind)
+                    {
+                        player.handCard.Remove(room.lastPlayCard);
+                        player.handCard.Remove(room.lastPlayCard);
+                    }
+                }
+            }
+            else if (topOperation.operationCode == OperationCode.Gang)
+            {
+                foreach (PlayerInfo player in room.players)
+                {
+                    player.client?.Send(MessageId.OperationEvent, new OperationEvnet()
+                    {
+                        dealerWind = topOperation.dealerWind,
+                        operationCode = OperationCode.Gang,
+                        operationCard = room.lastPlayCard
+                    });
+                }
+
+                foreach (PlayerInfo player in room.players)
+                {
+                    if (player.dealerWind == topOperation.dealerWind)
+                    {
+                        player.handCard.Remove(room.lastPlayCard);
+                        player.handCard.Remove(room.lastPlayCard);
+                        player.handCard.Remove(room.lastPlayCard);
+                        byte card = room.deck.DrawFromTail();
+                        player.handCard.Add(card);
+                        player.handCard.Sort();
+
+                        DrawCardEvent data = new() {dealerWind = player.dealerWind, card = card};
+                        player.client?.Send(MessageId.DrawCardEvent, data);
+                        data.card = 0;
+                        foreach (PlayerInfo playerInfo in room.players)
+                        {
+                            if (playerInfo != player)
+                            {
+                                playerInfo.client?.Send(MessageId.DrawCardEvent, data);
+                            }
+                        }
+                    }
                 }
             }
         }
