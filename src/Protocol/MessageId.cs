@@ -13,7 +13,17 @@ public enum MessageId : short
     SortCardFinished = 1007, // 理牌
     DrawCardEvent = 1008, // 摸牌
     PlayCard = 1009, // 出牌
-    PlayCardEvent=1010, // 其他玩家出牌事件
+    PlayCardEvent = 1010, // 其他玩家出牌事件
+    Operation = 1011, // 玩家操作，碰、杠、胡
+    OperationEvent = 1012 // 玩家操作事件，碰、杠、胡
+}
+
+public enum OperationCode
+{
+    Pass, // 过牌
+    Peng, // 碰牌
+    Gang, // 杠牌
+    Hu // 胡牌
 }
 
 public class Response<T>
@@ -81,4 +91,18 @@ public class PlayCardEvent
     public bool canPeng;
     public bool canGang;
     public bool canHu;
+}
+
+public class OperationReq
+{
+    public int roomId;
+    public byte dealerWind;
+    public OperationCode operationCode;
+}
+
+public class OperationEvnet
+{
+    public byte dealerWind;
+    public int operationCode;
+    public byte operationCard;
 }

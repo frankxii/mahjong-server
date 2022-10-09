@@ -1,3 +1,4 @@
+using MahjongServer.Protocol;
 using Newtonsoft.Json;
 
 namespace MahjongServer.Model;
@@ -11,4 +12,10 @@ public class RoomInfo
 
     [JsonIgnore]
     public CardDeck deck = new();
+    [JsonIgnore]
+    public byte lastPlayCardDealer;
+    [JsonIgnore]
+    public byte lastPlayCard;
+    [JsonIgnore]
+    public List<OperationReq> operationList = new();
 }

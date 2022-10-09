@@ -26,7 +26,8 @@ public class Server
             [MessageId.LeaveRoom] = OnLeaveRoom,
             [MessageId.Ready] = OnReady,
             [MessageId.SortCardFinished] = OnSortCardFinished,
-            [MessageId.PlayCard] = OnPlayCard
+            [MessageId.PlayCard] = OnPlayCard,
+            [MessageId.Operation] = OnOperation
         };
     }
 
@@ -378,7 +379,7 @@ public class Server
             }
         }
 
-        bool canNextPlayerDrawCard = true; // 下家能否摸牌
+        int playerCount = 0;
         // 通知其他玩家有人出牌
         foreach (PlayerInfo player in room.players)
         {
@@ -390,7 +391,7 @@ public class Server
                 bool canGang = CardDeck.CanGang(player.handCard, req.card);
                 bool canHu = CardDeck.CanHu(player.handCard, req.card);
                 if (canPeng || canGang || canHu)
-                    canNextPlayerDrawCard = false;
+                    playerCount += 1;
 
                 data.canPeng = canPeng;
                 data.canGang = canGang;
@@ -399,13 +400,82 @@ public class Server
             }
         }
 
+        room.lastPlayCardDealer = dealerWind;
+        // 启动监听线程，收集玩家操作结果
+
         // 如果没有人可以吃碰胡，通知下家摸牌
-        if (canNextPlayerDrawCard)
+        if (playerCount == 0)
         {
             // 确定下家
             int playerDealerWind = dealerWind + 1 <= 4 ? dealerWind + 1 : 1;
             // 下家摸牌
             PlayerDrawCard(room, (byte) playerDealerWind);
+        }
+        else
+        {
+            _ = WaitingForOperationAsync(room, playerCount);
+        }
+    }
+
+    private void OnOperation(Request request)
+    {
+        OperationReq req = ProtoUtil.Deserialize<OperationReq>(request.json);
+        RoomInfo room = _rooms[req.roomId];
+        room.operationList.Add(req);
+    }
+
+    private async Task WaitingForOperationAsync(RoomInfo room, int players)
+    {
+        for (int times = 0; times < 9; times++)
+        {
+            await Task.Delay(1000);
+            if (room.operationList.Count == players)
+                break;
+        }
+
+        OperationReq? topOperation = null;
+        // 获取操作优先级
+        foreach (OperationReq operation in room.operationList)
+        {
+            if (topOperation is null)
+            {
+                topOperation = operation;
+            }
+            else if (operation.operationCode == topOperation.operationCode)
+            {
+                if (operation.dealerWind + 4 - room.lastPlayCardDealer <
+                    topOperation.dealerWind + 4 - room.lastPlayCardDealer)
+                {
+                    topOperation = operation;
+                }
+            }
+            else if (operation.operationCode > topOperation.operationCode)
+            {
+                topOperation = operation;
+            }
+        }
+
+        if (topOperation is null)
+        {
+            // 没有有效操作，下家摸牌
+            int playerDealerWind = room.lastPlayCardDealer + 1 <= 4 ? room.lastPlayCardDealer + 1 : 1;
+            // 下家摸牌
+            PlayerDrawCard(room, (byte) playerDealerWind);
+        }
+        else
+        {
+            if (topOperation.operationCode == OperationCode.Hu)
+            {
+            }
+            else
+            {
+                if (topOperation.operationCode == OperationCode.Peng)
+                {
+                }
+                else if (topOperation.operationCode == OperationCode.Gang)
+                {
+                }
+            }
         }
     }
 }
