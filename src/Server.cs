@@ -159,7 +159,7 @@ public class Server
                 gender = user.Gender,
                 coin = user.Coin,
                 isReady = false,
-                dealerWind = 1,
+                dealerWind = 0,
                 client = request.client
             }
         );
@@ -183,7 +183,7 @@ public class Server
         if (_rooms[data.roomId].players.Count >= 4)
             request.client.Send(MessageId.JoinRoom, new Response<object>() {code = 11, message = "房间人数已满"});
         // 安排玩家门风
-        List<byte> winds = new() {1, 2, 3, 4};
+        List<byte> winds = new() {0, 1, 2, 3};
 
         foreach (PlayerInfo playerInfo in _rooms[data.roomId].players)
         {
@@ -328,7 +328,7 @@ public class Server
         drawPlayer.handCard.Add(card);
         drawPlayer.handCard.Sort();
         DrawCardEvent data = new() {dealerWind = drawPlayer.dealerWind, card = card};
-        room.players[0].client?.Send(MessageId.DrawCardEvent, data);
+        drawPlayer.client?.Send(MessageId.DrawCardEvent, data);
 
         // 隐藏摸牌数值，同步其他玩家
         data.card = 0;
@@ -362,14 +362,14 @@ public class Server
         }
 
         // 东家摸牌
-        PlayerDrawCard(room, 1);
+        PlayerDrawCard(room, 0);
     }
 
     private void OnPlayCard(Request request)
     {
         PlayCardReq req = ProtoUtil.Deserialize<PlayCardReq>(request.json);
         RoomInfo room = _rooms[req.roomId];
-        byte dealerWind = 1;
+        byte dealerWind = 0;
         foreach (PlayerInfo player in room.players)
         {
             if (player.userId == req.userId)
@@ -407,12 +407,13 @@ public class Server
         if (playerCount == 0)
         {
             // 确定下家
-            int playerDealerWind = dealerWind + 1 <= 4 ? dealerWind + 1 : 1;
+            int playerDealerWind = (dealerWind + 1) % 4;
             // 下家摸牌
             PlayerDrawCard(room, (byte) playerDealerWind);
         }
         else
         {
+            room.operationList.Clear(); // 监听操作回调前请求操作回调列表
             _ = WaitingForOperationAsync(room, playerCount);
         }
     }
@@ -443,6 +444,7 @@ public class Server
             }
             else if (operation.operationCode == topOperation.operationCode)
             {
+                // 如果两个玩家操作优先级一样，靠近出牌玩家的玩家优先级更高。
                 if (operation.dealerWind + 4 - room.lastPlayCardDealer <
                     topOperation.dealerWind + 4 - room.lastPlayCardDealer)
                 {
@@ -458,7 +460,7 @@ public class Server
         if (topOperation is null)
         {
             // 没有有效操作，下家摸牌
-            int playerDealerWind = room.lastPlayCardDealer + 1 <= 4 ? room.lastPlayCardDealer + 1 : 1;
+            int playerDealerWind = (room.lastPlayCardDealer + 1) % 4;
             // 下家摸牌
             PlayerDrawCard(room, (byte) playerDealerWind);
         }
