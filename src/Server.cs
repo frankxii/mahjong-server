@@ -327,7 +327,8 @@ public class Server
         byte card = room.deck.Draw();
         drawPlayer.handCard.Add(card);
         drawPlayer.handCard.Sort();
-        DrawCardEvent data = new() {dealerWind = drawPlayer.dealerWind, card = card};
+        DrawCardEvent data = new()
+            {dealerWind = drawPlayer.dealerWind, card = card, remainCards = room.deck.RemainCard};
         drawPlayer.client?.Send(MessageId.DrawCardEvent, data);
 
         // 隐藏摸牌数值，同步其他玩家
@@ -513,7 +514,10 @@ public class Server
                         player.handCard.Add(card);
                         player.handCard.Sort();
 
-                        DrawCardEvent data = new() {dealerWind = player.dealerWind, card = card};
+                        DrawCardEvent data = new()
+                        {
+                            dealerWind = player.dealerWind, card = card, remainCards = room.deck.RemainCard
+                        };
                         player.client?.Send(MessageId.DrawCardEvent, data);
                         data.card = 0;
                         foreach (PlayerInfo playerInfo in room.players)
