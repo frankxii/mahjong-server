@@ -403,8 +403,9 @@ public class Server
             }
         }
 
+        // 记录出牌玩家和出牌数字
         room.lastPlayCardDealer = dealerWind;
-        // 启动监听线程，收集玩家操作结果
+        room.lastPlayCard = req.card;
 
         // 如果没有人可以吃碰胡，通知下家摸牌
         if (playerCount == 0)
@@ -416,7 +417,9 @@ public class Server
         }
         else
         {
-            room.operationList.Clear(); // 监听操作回调前请求操作回调列表
+            // 监听操作回调前清空操作回调列表
+            room.operationList.Clear();
+            // 启动监听线程，收集玩家操作结果
             _ = WaitingForOperationAsync(room, playerCount);
         }
     }

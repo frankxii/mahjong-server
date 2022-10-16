@@ -13,9 +13,9 @@ public class RoomInfo
     [JsonIgnore]
     public CardDeck deck = new();
     [JsonIgnore]
-    public byte lastPlayCardDealer;
+    public byte lastPlayCardDealer; // 上次出牌玩家座位
     [JsonIgnore]
-    public byte lastPlayCard;
+    public byte lastPlayCard; // 上次出牌卡牌
     [JsonIgnore]
     public List<OperationReq> operationList = new();
 }
