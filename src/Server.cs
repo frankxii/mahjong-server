@@ -477,6 +477,7 @@ public class Server
             }
             else if (topOperation.operationCode == OperationCode.Peng)
             {
+                // 通知所有玩家有人碰牌
                 foreach (PlayerInfo player in room.players)
                 {
                     player.client?.Send(MessageId.OperationEvent, new OperationEvnet()
@@ -487,6 +488,7 @@ public class Server
                     });
                 }
 
+                // 移除两张碰的手牌
                 foreach (PlayerInfo player in room.players)
                 {
                     if (player.dealerWind == topOperation.dealerWind)
@@ -498,6 +500,7 @@ public class Server
             }
             else if (topOperation.operationCode == OperationCode.Gang)
             {
+                // 通知所有玩家，有人杠牌
                 foreach (PlayerInfo player in room.players)
                 {
                     player.client?.Send(MessageId.OperationEvent, new OperationEvnet()
@@ -512,18 +515,21 @@ public class Server
                 {
                     if (player.dealerWind == topOperation.dealerWind)
                     {
+                        // 移除三张手牌
                         player.handCard.Remove(room.lastPlayCard);
                         player.handCard.Remove(room.lastPlayCard);
                         player.handCard.Remove(room.lastPlayCard);
+                        // 从最后一张摸牌
                         byte card = room.deck.DrawFromTail();
                         player.handCard.Add(card);
                         player.handCard.Sort();
-
+                        // 通知玩家摸牌
                         DrawCardEvent data = new()
                         {
                             dealerWind = player.dealerWind, card = card, remainCards = room.deck.RemainCard
                         };
                         player.client?.Send(MessageId.DrawCardEvent, data);
+                        // 通知其他玩家有人摸牌
                         data.card = 0;
                         foreach (PlayerInfo playerInfo in room.players)
                         {
