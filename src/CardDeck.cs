@@ -104,6 +104,91 @@ public class CardDeck
     /// <returns>是否可以胡</returns>
     public static bool CanHu(List<byte> handCards, byte card)
     {
+        // 只有两张牌时，判断单调胡，两张牌是否一样
+        if (handCards.Count == 1)
+            return handCards[0] == card;
+
+        // 合并手牌和加入判断的牌并排序
+        List<byte> cards = new(handCards);
+        cards.Add(card);
+        cards.Sort();
+
+        // 统计每张牌张数
+        Dictionary<byte, int> count = new();
+        foreach (byte number in cards)
+        {
+            if (count.ContainsKey(number))
+                count[number]++;
+            else
+                count[number] = 1;
+        }
+
+        // 穷举所有可以做将牌的情况
+        foreach (KeyValuePair<byte, int> pair in count)
+        {
+            if (pair.Value >= 2)
+            {
+                List<byte> cardsWithOutJiang = new(cards);
+                cardsWithOutJiang.Remove(pair.Key);
+                cardsWithOutJiang.Remove(pair.Key);
+                if (CanDivideCards(cardsWithOutJiang))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 检测去掉一对将的其他牌是否可以分解配对
+    /// </summary>
+    /// <param name="cards">去掉将的牌组</param>
+    /// <returns>是否可以胡</returns>
+    private static bool CanDivideCards(List<byte> cards)
+    {
+        // 移除刻子
+        int count = 0;
+        byte card = 0;
+        foreach (byte c in cards)
+        {
+            if (c == card)
+                count++;
+            else
+            {
+                count = 1;
+                card = c;
+            }
+
+            if (count == 3)
+            {
+                // 重置计数器
+                count = 0;
+                List<byte> newCards = new(cards);
+                newCards.Remove(card);
+                newCards.Remove(card);
+                newCards.Remove(card);
+                // 移除刻子后继续递归
+                if (CanDivideCards(newCards))
+                    return true;
+            }
+        }
+
+        // 取列表第一个作为标志，看是否存在大1点大2点的牌
+        byte first = cards[0];
+        byte second = (byte) (first + 1);
+        byte third = (byte) (first + 2);
+        if (cards.Contains(second) && cards.Contains(third))
+        {
+            // 所有卡牌都已配对，可以胡
+            if (cards.Count == 3)
+                return true;
+            // 移除一搭顺子后继续递归，移除顺子不需要还原卡牌，所以在原列表上操作，不需要copy新列表
+            cards.Remove(first);
+            cards.Remove(second);
+            cards.Remove(third);
+            return CanDivideCards(cards);
+        }
+
         return false;
     }
 }
