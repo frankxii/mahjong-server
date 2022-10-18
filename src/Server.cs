@@ -474,10 +474,40 @@ public class Server
         {
             if (topOperation.operationCode == OperationCode.Hu)
             {
+                List<PlayerHuResult> result = new();
+                // 计算赢家积分，扣除输家积分
                 foreach (PlayerInfo player in room.players)
                 {
-                    player.client?.Send(MessageId.HuEvent, new HuEvent());
+                    int score = 0;
+                    bool isHu = false;
+                    if (player.dealerWind == topOperation.dealerWind)
+                    {
+                        isHu = true;
+                        score = 5;
+                        // 数据库增加玩家积分
+                    }
+                    else if (player.dealerWind == room.lastPlayCardDealer)
+                    {
+                        score = -5;
+                        // 数据库减少玩家积分
+                    }
+
+                    result.Add(new PlayerHuResult()
+                    {
+                        dealerWind = player.dealerWind,
+                        handCards = player.handCard,
+                        score = score,
+                        isHu = isHu,
+                        huCard = room.lastPlayCard
+                    });
                 }
+                
+                // 通知所有玩家
+                foreach (PlayerInfo player in room.players)
+                {
+                    player.client?.Send(MessageId.HuEvent, result);
+                }
+                //  重置房间数据
             }
             else if (topOperation.operationCode == OperationCode.Peng)
             {

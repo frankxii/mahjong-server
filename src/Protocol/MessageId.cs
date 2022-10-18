@@ -111,7 +111,12 @@ public class PengGangEvnet
     public byte operationCard;
 }
 
-public class HuEvent
+public class PlayerHuResult
 {
-    
+    public byte dealerWind;
+    public bool isHu;
+    public byte huType;
+    public byte huCard;
+    public int score;
+    public List<byte> handCards = new();
 }
