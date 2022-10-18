@@ -474,16 +474,20 @@ public class Server
         {
             if (topOperation.operationCode == OperationCode.Hu)
             {
+                foreach (PlayerInfo player in room.players)
+                {
+                    player.client?.Send(MessageId.HuEvent, new HuEvent());
+                }
             }
             else if (topOperation.operationCode == OperationCode.Peng)
             {
                 // 通知所有玩家有人碰牌
                 foreach (PlayerInfo player in room.players)
                 {
-                    player.client?.Send(MessageId.OperationEvent, new OperationEvnet()
+                    player.client?.Send(MessageId.PengGangEvent, new PengGangEvnet()
                     {
                         dealerWind = topOperation.dealerWind,
-                        operationCode = OperationCode.Peng,
+                        isPeng = true,
                         operationCard = room.lastPlayCard
                     });
                 }
@@ -503,10 +507,10 @@ public class Server
                 // 通知所有玩家，有人杠牌
                 foreach (PlayerInfo player in room.players)
                 {
-                    player.client?.Send(MessageId.OperationEvent, new OperationEvnet()
+                    player.client?.Send(MessageId.PengGangEvent, new PengGangEvnet()
                     {
                         dealerWind = topOperation.dealerWind,
-                        operationCode = OperationCode.Gang,
+                        isGang = true,
                         operationCard = room.lastPlayCard
                     });
                 }
