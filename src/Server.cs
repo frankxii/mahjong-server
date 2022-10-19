@@ -371,13 +371,11 @@ public class Server
         PlayCardReq req = ProtoUtil.Deserialize<PlayCardReq>(request.json);
         RoomInfo room = _rooms[req.roomId];
         byte dealerWind = 0;
-        int remainHandCard = 0;
         foreach (PlayerInfo player in room.players)
         {
             if (player.userId == req.userId)
             {
                 dealerWind = player.dealerWind;
-                remainHandCard = player.handCard.Count;
                 player.handCard.Remove(req.card);
             }
         }
@@ -388,7 +386,7 @@ public class Server
         {
             if (player.userId != req.userId)
             {
-                PlayCardEvent data = new() {card = req.card, dealerWind = dealerWind, remainHandCard = remainHandCard};
+                PlayCardEvent data = new() {card = req.card, dealerWind = dealerWind};
                 // 检测玩家能否碰、杠、胡
                 bool canPeng = CardDeck.CanPeng(player.handCard, req.card);
                 bool canGang = CardDeck.CanGang(player.handCard, req.card) && room.deck.RemainCard > 0;
